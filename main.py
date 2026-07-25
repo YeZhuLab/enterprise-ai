@@ -8,12 +8,17 @@ load_dotenv() #这样 OpenAI() 就能自动找到你的 API Key。
 client = OpenAI()
 
 # 调用 GPT，向 OpenAI 服务器发送请求。
-question = input("You: ")
+while True:
+    question = input("\nYou: ")
 
-response = client.responses.create(
-    model="gpt-5",
-    input=question
-)
+    if question.lower() == "exit":
+        print("Goodbye!")
+        break
 
-print("\nGPT:")
-print(response.output_text)
+    response = client.responses.create(
+        model="gpt-5",
+        input=question
+    )
+
+    print("\nGPT:")
+    print(response.output_text)
