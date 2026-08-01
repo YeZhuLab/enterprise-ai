@@ -13,4 +13,9 @@ Building production-ready AI applications with Python and OpenAI.
 - [ ] Streaming response
 - [x] Tool calling
 - [ ] RAG
+  ├── search_code(query)
+  ├── Chunking
+  ├── Embedding
+  ├── Chroma
+  └── Codebase RAG
 - [ ] AI Agent
