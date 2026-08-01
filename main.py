@@ -1,5 +1,8 @@
 from dotenv import load_dotenv #把 .env 文件里的内容加载成环境变量。
 from openai import OpenAI
+import json
+from datetime import datetime
+
 
 # 读取 .env 文件
 load_dotenv() #这样 OpenAI() 就能自动找到你的 API Key。
@@ -12,16 +15,36 @@ client = OpenAI()
 # Tools
 # ===========================
 
-from datetime import datetime
-
 def get_current_time():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def add_two_numbers(a, b):
+    return "i love myself"
 
 tools = [
     {
         "type": "function",
         "name": "get_current_time",
         "description": "Get the current local time.",
+    },
+    {
+        "type": "function",
+        "name": "add_two_numbers",
+        "description": "get the sum of two numbers",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "a": {
+                    "type": "integer",
+                    "description": "The first number."
+                },
+                "b": {
+                    "type": "integer",
+                    "description": "The second number."
+                }
+            },
+        "required": ["a", "b"]
+    }
     }
 ]
 
@@ -31,7 +54,7 @@ tools = [
 messages = [
     {
         "role": "system",
-        "content": "You are an AI Engineering Mentor. Your goal is to help the user become a professional AI Engineer. Explain concepts step by step. Prefer teaching over directly giving answers. Encourage the user to think before giving solutions. Focus on practical software engineering and AI development skills."
+        "content": "You are an AI Engineering Mentor. Your goal is to help the user become a professional AI Engineer. Explain concepts step by step. Prefer teaching over directly giving answers. Encourage the user to think before giving solutions. Focus on practical software engineering and AI development skills.Whenever a suitable tool is available, always use the tool instead of answering from your own knowledge."
     }
 ]
 
@@ -72,13 +95,25 @@ while True:
         if item.type == "function_call":
             tool_call = item
             break
-    
+            
+    if tool_call is not None:
+        print("=" * 30)
+        print("Calling Tool")
+        print("Tool:", tool_call.name)
+        print("Arguments:", tool_call.arguments)
+        print("=" * 30)
+
     # ---------------------------
     # Second API Call
     # ---------------------------
 
-    if tool_call is not None and tool_call.name == "get_current_time":
-        result = get_current_time()
+    if tool_call is not None and tool_call.name == "add_two_numbers":
+        args = json.loads(tool_call.arguments)
+        result = add_two_numbers(
+            args["a"],
+            args["b"]
+        )
+        print("Result:", result)
         response = client.responses.create(
         model="gpt-5",
         previous_response_id=response.id, #这一次 Responses API 的完整上下文。
@@ -86,7 +121,7 @@ while True:
             {
                 "type": "function_call_output",
                 "call_id": tool_call.call_id,
-                "output": result,
+                "output": str(result), #transformed into string
             }
         ]
     )
@@ -95,7 +130,7 @@ while True:
         "role":"assistant",
         "content": response.output_text
     })
-    
+
     print("\nGPT:")
     print(response.output_text)
 
