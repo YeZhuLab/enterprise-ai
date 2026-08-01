@@ -8,9 +8,9 @@ Building production-ready AI applications with Python and OpenAI.
 - [x] GitHub repository
 - [x] Python project with uv
 - [x] OpenAI API integration
-- [ ] Interactive chat
-- [ ] Conversation memory
+- [x] Interactive chat
+- [x] Conversation memory
 - [ ] Streaming response
-- [ ] Tool calling
+- [x] Tool calling
 - [ ] RAG
 - [ ] AI Agent
