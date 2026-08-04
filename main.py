@@ -2,6 +2,7 @@ from dotenv import load_dotenv #把 .env 文件里的内容加载成环境变量
 from openai import OpenAI
 import json
 from datetime import datetime
+from search_code import search_code
 
 
 # 读取 .env 文件
@@ -45,8 +46,32 @@ tools = [
             },
         "required": ["a", "b"]
     }
+    },
+    {
+        "type": "function",
+        "name": "search_code",
+        "description": "Search the Python codebase for code related to the user's query and return relevant code snippets.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                     "type": "string",
+                     "description": "The function name, variable name, or code-related keyword to search for."
+                }
+            },
+            "required": ["query"]
+        }
     }
 ]
+
+#get_current_time表示：函数对象（Function Object）而：get_current_time()表示：立即执行函数。
+
+tool_map = {
+    "get_current_time": get_current_time,
+    "add_two_numbers": add_two_numbers,
+    "search_code": search_code,
+}
+
 
 # ===========================
 # Conversation History
@@ -80,18 +105,19 @@ while True:
     # ---------------------------
     # First API Call
     # ---------------------------
-    response = client.responses.create(
+    first_response = client.responses.create(
         model="gpt-5",
         input=messages,
         tools=tools,
     )
+
 
     # ---------------------------
     # Find Tool Call
     # ---------------------------
     tool_call = None
 
-    for item in response.output:
+    for item in first_response.output:
         if item.type == "function_call":
             tool_call = item
             break
@@ -107,16 +133,12 @@ while True:
     # Second API Call
     # ---------------------------
 
-    if tool_call is not None and tool_call.name == "add_two_numbers":
-        args = json.loads(tool_call.arguments)
-        result = add_two_numbers(
-            args["a"],
-            args["b"]
-        )
-        print("Result:", result)
-        response = client.responses.create(
+        tool_func = tool_map[tool_call.name]
+        tool_args = json.loads(tool_call.arguments)
+        result = tool_func(**tool_args)
+        second_response = client.responses.create(
         model="gpt-5",
-        previous_response_id=response.id, #这一次 Responses API 的完整上下文。
+        previous_response_id=first_response.id, #这一次 Responses API 的完整上下文。
         input=[
             {
                 "type": "function_call_output",
@@ -128,11 +150,11 @@ while True:
 
     messages.append({
         "role":"assistant",
-        "content": response.output_text
+        "content": second_response.output_text
     })
 
     print("\nGPT:")
-    print(response.output_text)
+    print(second_response.output_text)
 
     #print(response.output_text)
     #print(response.id)
