@@ -115,39 +115,43 @@ while True:
     # ---------------------------
     # Find Tool Call
     # ---------------------------
-    tool_call = None
+    tool_calls = []
 
     for item in first_response.output:
         if item.type == "function_call":
-            tool_call = item
-            break
+            tool_calls.append(item)
             
-    if tool_call is not None:
+    if tool_calls:
         print("=" * 30)
-        print("Calling Tool")
-        print("Tool:", tool_call.name)
-        print("Arguments:", tool_call.arguments)
+        print(f"Calling {len(tool_calls)} tool(s)")
         print("=" * 30)
 
     # ---------------------------
     # Second API Call
     # ---------------------------
-
+    
+    tool_outputs = []
+    for tool_call in tool_calls:
         tool_func = tool_map[tool_call.name]
         tool_args = json.loads(tool_call.arguments)
         result = tool_func(**tool_args)
-        second_response = client.responses.create(
-        model="gpt-5",
-        previous_response_id=first_response.id, #这一次 Responses API 的完整上下文。
-        input=[
+        tool_outputs.append(
             {
                 "type": "function_call_output",
                 "call_id": tool_call.call_id,
-                "output": str(result), #transformed into string
+                "output": str(result),
             }
-        ]
-    )
-
+        )
+    
+    if tool_calls:
+        second_response = client.responses.create(
+            model="gpt-5",
+            previous_response_id=first_response.id, #这一次 Responses API 的完整上下文。
+            input=tool_outputs
+        )
+    else:
+        second_response = first_response
+        
     messages.append({
         "role":"assistant",
         "content": second_response.output_text
